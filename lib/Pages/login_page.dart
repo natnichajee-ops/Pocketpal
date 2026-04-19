@@ -12,12 +12,40 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _login() {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    // ✅ Validation
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _errorMessage = 'Please enter email and password');
+      return;
+    }
+    if (!email.contains('@')) {
+      setState(() => _errorMessage = 'Invalid email format');
+      return;
+    }
+    if (password.length < 6) {
+      setState(() => _errorMessage = 'Username or password is incorrect');
+      return;
+    }
+
+    // ✅ ผ่าน validation ไปหน้า Home พร้อมส่ง username
+    final username = email.split('@')[0];
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => HomePage(username: username)),
+      (route) => false,
+    );
   }
 
   @override
@@ -31,7 +59,7 @@ class _LoginPageState extends State<LoginPage> {
             Center(child: Image.asset('assets/logo.png', height: 220)),
             const SizedBox(height: 20),
 
-            // Toggle Login/Register
+            // Tab Login / Register
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 40),
               height: 45,
@@ -76,14 +104,12 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       Expanded(
                         child: GestureDetector(
-                          onTap: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const RegisterPage(),
-                              ),
-                            );
-                          },
+                          onTap: () => Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const RegisterPage(),
+                            ),
+                          ),
                           child: const Center(
                             child: Text(
                               'Register',
@@ -146,22 +172,35 @@ class _LoginPageState extends State<LoginPage> {
                     controller: _passwordController,
                   ),
 
-                  const SizedBox(height: 30),
+                  // ✅ แสดง error message
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 10,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade100,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
 
                   Center(
                     child: GestureDetector(
-                      onTap: () {
-                        final username = _emailController.text.isNotEmpty
-                            ? _emailController.text
-                            : 'User';
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => HomePage(username: username),
-                          ),
-                          (route) => false,
-                        );
-                      },
+                      onTap: _login,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 60,
@@ -172,7 +211,7 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.1),
+                              color: Colors.black.withOpacity(0.1),
                               blurRadius: 4,
                               offset: const Offset(0, 4),
                             ),
@@ -203,11 +242,12 @@ class _LoginPageState extends State<LoginPage> {
   Widget _buildTextField(
     String hint, {
     bool isObscure = false,
-    required TextEditingController controller,
+    TextEditingController? controller,
   }) {
     return TextField(
       controller: controller,
       obscureText: isObscure,
+      onChanged: (_) => setState(() => _errorMessage = null),
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),

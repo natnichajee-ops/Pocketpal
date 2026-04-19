@@ -214,12 +214,24 @@ class _SelectCurrencyPageState extends State<SelectCurrencyPage> {
                                   ),
                                 ),
                                 if (rate != null)
-                                  Text(
-                                    '1 THB = ${rate.toStringAsFixed(4)} $code',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: AppColors.mediumGray,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '1 THB = ${rate.toStringAsFixed(4)} $code',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.mediumGray,
+                                        ),
+                                      ),
+                                      Text(
+                                        '1 $code = ${(1 / rate).toStringAsFixed(4)} THB',
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          color: AppColors.mediumGray,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 if (isSelected)
                                   const Padding(

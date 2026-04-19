@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'transaction_page.dart';
 import '../widgets/app_bottom_nav_bar.dart';
+import '../models/database_helper.dart';
 import 'summaries_page.dart';
 import 'profile_page.dart';
 
@@ -18,9 +19,31 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
+  final DatabaseHelper _db = DatabaseHelper();
+
+  double _totalIncome = 0;
+  double _totalExpense = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTotals();
+  }
+
+  // ✅ ดึงยอดรวมจาก database จริง
+  Future<void> _loadTotals() async {
+    final income = await _db.getTotalIncome();
+    final expense = await _db.getTotalExpense();
+    setState(() {
+      _totalIncome = income;
+      _totalExpense = expense;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final netBalance = _totalIncome - _totalExpense;
+
     return Scaffold(
       backgroundColor: bgColor,
       body: Stack(
@@ -67,6 +90,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         const SizedBox(height: 15),
+                        // ✅ แสดงยอด net balance จริง
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 25),
@@ -74,19 +98,19 @@ class _HomePageState extends State<HomePage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(20),
                           ),
-                          child: const Column(
+                          child: Column(
                             children: [
-                              Text(
+                              const Text(
                                 'this month',
                                 style: TextStyle(
                                   color: Colors.grey,
                                   fontSize: 20,
                                 ),
                               ),
-                              SizedBox(height: 1),
+                              const SizedBox(height: 1),
                               Text(
-                                '9999.00 THB',
-                                style: TextStyle(
+                                '${netBalance.toStringAsFixed(2)} THB',
+                                style: const TextStyle(
                                   fontSize: 35,
                                   color: textColor,
                                   fontWeight: FontWeight.bold,
@@ -96,11 +120,18 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        const Row(
+                        // ✅ แสดง income / expense จริง
+                        Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            InfoBox(title: 'income', amount: '9999.00'),
-                            InfoBox(title: 'paid', amount: '1.00'),
+                            InfoBox(
+                              title: 'income',
+                              amount: _totalIncome.toStringAsFixed(2),
+                            ),
+                            InfoBox(
+                              title: 'paid',
+                              amount: _totalExpense.toStringAsFixed(2),
+                            ),
                           ],
                         ),
                       ],
@@ -118,8 +149,8 @@ class _HomePageState extends State<HomePage> {
                         borderRadius: BorderRadius.circular(15),
                       ),
                     ),
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      await Navigator.push(
                         context,
                         PageRouteBuilder(
                           pageBuilder: (context, anim, secAnim) =>
@@ -136,6 +167,8 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       );
+                      // ✅ โหลดยอดใหม่หลังกลับจากหน้า Transaction
+                      _loadTotals();
                     },
                     child: const Text(
                       '+ CREATE A TRANSACTION',
@@ -159,16 +192,20 @@ class _HomePageState extends State<HomePage> {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const SummariesPage()),
-            );
+            ).then((_) {
+              _loadTotals();
+              setState(() => _currentIndex = 0);
+            });
           } else if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(
                 builder: (_) => ProfilePage(username: widget.username),
               ),
-            );
+            ).then((_) => setState(() => _currentIndex = 0));
+          } else {
+            setState(() => _currentIndex = index);
           }
-          setState(() => _currentIndex = index);
         },
       ),
     );

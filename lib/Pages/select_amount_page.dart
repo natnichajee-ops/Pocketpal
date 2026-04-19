@@ -1,6 +1,35 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 
+// อัตราแลกเปลี่ยนเทียบกับ THB
+const Map<String, double> _ratesFromTHB = {
+  'THB': 1.0,
+  'USD': 0.0278,
+  'EUR': 0.0257,
+  'JPY': 4.23,
+  'CNY': 0.201,
+  'GBP': 0.0220,
+  'KRW': 38.10,
+  'SGD': 0.0374,
+  'MYR': 0.130,
+  'HKD': 0.217,
+  'AUD': 0.0431,
+};
+
+const Map<String, String> _currencyFlags = {
+  'THB': '🇹🇭',
+  'USD': '🇺🇸',
+  'EUR': '🇪🇺',
+  'JPY': '🇯🇵',
+  'CNY': '🇨🇳',
+  'GBP': '🇬🇧',
+  'KRW': '🇰🇷',
+  'SGD': '🇸🇬',
+  'MYR': '🇲🇾',
+  'HKD': '🇭🇰',
+  'AUD': '🇦🇺',
+};
+
 class SelectAmountPage extends StatefulWidget {
   final double initialAmount;
 
@@ -12,6 +41,7 @@ class SelectAmountPage extends StatefulWidget {
 
 class _SelectAmountPageState extends State<SelectAmountPage> {
   String _display = '';
+  String _selectedCurrency = 'THB';
 
   @override
   void initState() {
@@ -35,6 +65,14 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
     });
   }
 
+  /// แปลงจากสกุลเงินที่เลือก → THB
+  double get _amountInTHB {
+    final input = double.tryParse(_display) ?? 0;
+    if (_selectedCurrency == 'THB') return input;
+    final rate = _ratesFromTHB[_selectedCurrency] ?? 1.0;
+    return input / rate;
+  }
+
   @override
   Widget build(BuildContext context) {
     final keys = [
@@ -43,6 +81,8 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
       ['7', '8', '9'],
       ['.', '0', '⌫'],
     ];
+
+    final hasInput = (double.tryParse(_display) ?? 0) > 0;
 
     return Scaffold(
       backgroundColor: AppColors.bgGray,
@@ -53,23 +93,61 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('SELECT AMOUNT',
-            style:
-                TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        title: const Text(
+          'SELECT AMOUNT',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
       ),
       body: Column(
         children: [
-          // Display
+          // ── Currency Chip Selector ───────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+            child: SizedBox(
+              height: 36,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: _ratesFromTHB.keys.map((currency) {
+                  final isSelected = _selectedCurrency == currency;
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedCurrency = currency),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.teal : Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: AppColors.teal, width: 1.5),
+                      ),
+                      child: Text(
+                        '${_currencyFlags[currency]} $currency',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : AppColors.teal,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ),
+
+          // ── Display ──────────────────────────────────────────────────
           Container(
-            margin: const EdgeInsets.all(20),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+            margin: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             decoration: BoxDecoration(
               color: AppColors.lightGray,
               borderRadius: BorderRadius.circular(20),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
                   _display.isEmpty ? '0' : _display,
@@ -79,14 +157,26 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
                     color: AppColors.darkGray,
                   ),
                 ),
+                if (_selectedCurrency != 'THB' && hasInput)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '= ${_amountInTHB.toStringAsFixed(2)} THB',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppColors.darkGray.withOpacity(0.6),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
               ],
             ),
           ),
 
-          // Keypad
+          // ── Keypad ───────────────────────────────────────────────────
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: keys.map((row) {
@@ -98,7 +188,7 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
                         onTap: () => _onKey(k),
                         child: Container(
                           width: 84,
-                          height: 68,
+                          height: 62,
                           decoration: BoxDecoration(
                             color: isDelete
                                 ? AppColors.darkGray
@@ -114,8 +204,11 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
                           ),
                           child: Center(
                             child: isDelete
-                                ? const Icon(Icons.backspace_outlined,
-                                    color: Colors.white, size: 22)
+                                ? const Icon(
+                                    Icons.backspace_outlined,
+                                    color: Colors.white,
+                                    size: 22,
+                                  )
                                 : Text(
                                     k,
                                     style: const TextStyle(
@@ -134,13 +227,12 @@ class _SelectAmountPageState extends State<SelectAmountPage> {
             ),
           ),
 
-          // Save
+          // ── Save Button ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.all(20),
             child: GestureDetector(
               onTap: () {
-                final val = double.tryParse(_display) ?? 0;
-                Navigator.pop(context, val);
+                Navigator.pop(context, _amountInTHB);
               },
               child: Container(
                 width: double.infinity,
